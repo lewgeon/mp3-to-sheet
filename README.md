@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README_zh.md)
+
 # MP3 to Sheet Music 🎵
 
 > **🤖 AI-Generated Project** — This project was entirely created by AI (Claude Code, Anthropic). All code, documentation, and project structure were generated through natural language prompts.

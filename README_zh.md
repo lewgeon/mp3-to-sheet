@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README_zh.md)
+
 # MP3 转五线谱 🎵
 
 > **🤖 AI 生成项目** — 本项目完全由 AI（Claude Code, Anthropic）创建。所有代码、文档和项目结构均通过自然语言提示生成。
