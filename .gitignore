@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Test outputs
+test_*.wav
+test_*.musicxml
+test_*.pdf
+test_*.png
+
+# OS
+.DS_Store
+Thumbs.db
