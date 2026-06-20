@@ -1,5 +1,7 @@
 # MP3 to Sheet Music 🎵
 
+> **🤖 AI-Generated Project** — This project was entirely created by AI (Claude Code, Anthropic). All code, documentation, and project structure were generated through natural language prompts.
+
 Convert MP3 audio files into sheet music notation (五线谱). Automatically detects pitch, rhythm, and tempo from monophonic audio (solo instruments, vocals, humming) and generates standard MusicXML files that can be opened in any sheet music software.
 
 ## ✨ Features
@@ -145,4 +147,4 @@ Limitations:
 
 ## 📄 License
 
-MIT License
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
