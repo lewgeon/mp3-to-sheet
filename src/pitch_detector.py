@@ -1,5 +1,8 @@
 """
-Pitch detector: estimate fundamental frequency of audio segments using PYIN.
+Pitch detector: estimate fundamental frequency of audio segments.
+
+Primary: PYIN (Probabilistic YIN) — state-of-the-art monophonic pitch detection.
+Fallback: YIN — simpler, more robust for short/noisy notes.
 """
 
 from typing import Optional
@@ -11,16 +14,10 @@ import librosa
 FMIN = librosa.note_to_hz("C2")
 FMAX = librosa.note_to_hz("C7")
 
-# Frequencies below this threshold are considered silence
-SILENCE_RMS_THRESHOLD = 0.01
-
 
 def detect_pitch_pyin(segment: np.ndarray, sr: int) -> np.ndarray:
     """
-    Detect pitch frequencies in an audio segment using the PYIN algorithm.
-
-    PYIN (Probabilistic YIN) is a state-of-the-art monophonic pitch
-    detection algorithm that handles vibrato and pitch variations well.
+    Detect pitch frequencies using the PYIN algorithm.
 
     Args:
         segment: Audio samples for one note segment.
@@ -46,7 +43,9 @@ def detect_pitch_pyin(segment: np.ndarray, sr: int) -> np.ndarray:
 def detect_pitch_yin(segment: np.ndarray, sr: int) -> Optional[float]:
     """
     Fallback: detect a single pitch using YIN algorithm.
-    Faster but less accurate for vibrato; good for short steady notes.
+
+    More robust than PYIN for very short notes or notes with
+    weak fundamental frequencies.
 
     Args:
         segment: Audio samples.
@@ -78,38 +77,49 @@ def get_stable_frequency(pitch_values: np.ndarray) -> Optional[float]:
     """
     Extract a stable representative frequency from a pitch contour.
 
-    Uses the median of voiced (non-NaN) frames to reject outliers.
+    Uses median of voiced (non-NaN) frames. Requires at least 10%
+    of frames to be voiced (relaxed from 30% to handle complex audio).
 
     Args:
-        pitch_values: Array of frequency values from PYIN (contains NaN for unvoiced).
+        pitch_values: Array of frequency values from PYIN.
 
     Returns:
-        Median frequency in Hz, or None if mostly unvoiced.
+        Median frequency in Hz, or None if overwhelmingly unvoiced.
     """
     voiced = pitch_values[~np.isnan(pitch_values)]
 
     if len(voiced) == 0:
         return None
 
-    # Require at least 30% of frames to be voiced
-    if len(voiced) / len(pitch_values) < 0.3:
+    # Relaxed: only require 10% voiced (was 30%)
+    if len(voiced) / len(pitch_values) < 0.10:
         return None
 
     return float(np.median(voiced))
 
 
-def is_silence(segment: np.ndarray, threshold: float = SILENCE_RMS_THRESHOLD) -> bool:
+def is_silence(segment: np.ndarray, global_rms: float = None) -> bool:
     """
-    Check if a segment is essentially silence (rest).
+    Check if a segment is essentially silence.
+
+    Uses an adaptive threshold: 5% of the global RMS, or a small
+    absolute threshold if global RMS is not provided.
 
     Args:
         segment: Audio samples.
-        threshold: RMS threshold below which the segment is considered silence.
+        global_rms: Overall RMS of the full audio (for adaptive threshold).
 
     Returns:
         True if the segment is silence.
     """
     if len(segment) == 0:
         return True
-    rms = np.sqrt(np.mean(segment**2))
+
+    rms = np.sqrt(np.mean(segment ** 2))
+
+    if global_rms is not None and global_rms > 0:
+        threshold = max(0.005, global_rms * 0.05)
+    else:
+        threshold = 0.01
+
     return rms < threshold

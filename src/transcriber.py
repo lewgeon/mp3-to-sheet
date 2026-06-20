@@ -169,8 +169,10 @@ def smooth_pitch_errors(
     notes: list[dict], min_note_duration: float = 0.08
 ) -> list[dict]:
     """
-    Post-process detected notes: merge very short notes into neighbors
-    and remove obvious octave errors.
+    Post-process detected notes:
+    1. Merge very short notes into neighbors (likely detection errors).
+    2. Merge consecutive notes with the same pitch (likely decay tails).
+    3. Remove isolated single-frame detections.
 
     Args:
         notes: List of note dicts from detection.
@@ -182,16 +184,41 @@ def smooth_pitch_errors(
     if not notes:
         return notes
 
+    # Pass 1: merge short notes
     cleaned = []
-
     for note in notes:
-        # Skip very short notes — likely detection errors
         if note["duration"] < min_note_duration and cleaned:
-            # Extend the previous note's duration instead
             cleaned[-1]["duration"] += note["duration"]
             cleaned[-1]["end_time"] = note["end_time"]
             continue
-
         cleaned.append(note)
 
-    return cleaned
+    if not cleaned:
+        return cleaned
+
+    # Pass 2: merge consecutive notes with same pitch
+    # (common with decay tails or re-triggered onsets on the same note)
+    merged = [cleaned[0]]
+    for note in cleaned[1:]:
+        prev = merged[-1]
+        # Same MIDI pitch and the note isn't a rest
+        if (
+            prev.get("midi") is not None
+            and note.get("midi") is not None
+            and prev["midi"] == note["midi"]
+            and not prev.get("is_rest")
+            and not note.get("is_rest")
+        ):
+            prev["duration"] += note["duration"]
+            prev["end_time"] = note["end_time"]
+            # Recompute frequency as weighted average
+            if prev.get("frequency") and note.get("frequency"):
+                d1 = prev["duration"] - note["duration"]
+                d2 = note["duration"]
+                total = d1 + d2
+                if total > 0:
+                    prev["frequency"] = (prev["frequency"] * d1 + note["frequency"] * d2) / total
+            continue
+        merged.append(note)
+
+    return merged
